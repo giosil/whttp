@@ -575,7 +575,7 @@ class WHttp
     if(urlBase.indexOf('?') > 0) {
       result = urlBase + "&" + url;
     }
-    else if(url != null && url.startsWith("/")) {
+    else if(url != null && (url.startsWith("/") || url.startsWith(";"))) {
       result = urlBase + url;
     }
     else {
