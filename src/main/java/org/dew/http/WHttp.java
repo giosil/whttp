@@ -8,6 +8,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -26,6 +30,7 @@ class WHttp
   
   protected int connectTimeout = 60000;
   protected int readTimeout = 60000;
+  protected SSLSocketFactory sslSocketFactory;
   
   protected int lastStatusCode;
   
@@ -168,7 +173,15 @@ class WHttp
   public void setReadTimeout(int readTimeout) {
     this.readTimeout = readTimeout;
   }
-  
+
+  public SSLSocketFactory getSslSocketFactory() {
+    return sslSocketFactory;
+  }
+
+  public void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
+    this.sslSocketFactory = sslSocketFactory;
+  }
+
   public
   String get()
     throws Exception
@@ -350,6 +363,48 @@ class WHttp
   }
   
   public
+  String patch(String data)
+    throws Exception
+  {
+    return http("PATCH", null, null, data);
+  }
+  
+  public
+  String patch(String url, String data)
+    throws Exception
+  {
+    return http("PATCH", url, null, data);
+  }
+  
+  public
+  String patch(Map<String, Object> parameters)
+    throws Exception
+  {
+    return http("PATCH", null, parameters, null);
+  }
+  
+  public
+  String patch(String url, Map<String, Object> parameters)
+    throws Exception
+  {
+    return http("PATCH", url, parameters, null);
+  }
+  
+  public
+  String patch(Map<String, Object> parameters, String data)
+    throws Exception
+  {
+    return http("PATCH", null, parameters, data);
+  }
+  
+  public
+  String patch(String url, Map<String, Object> parameters, String data)
+    throws Exception
+  {
+    return http("PATCH", url, parameters, data);
+  }
+  
+  public
   String delete()
     throws Exception
   {
@@ -456,6 +511,11 @@ class WHttp
       }
     }
     
+    if(sslSocketFactory != null) {
+      if(connection instanceof HttpsURLConnection) {
+        ((HttpsURLConnection) connection).setSSLSocketFactory(sslSocketFactory);
+      }
+    }
     if(connectTimeout > 0) {
       connection.setConnectTimeout(connectTimeout);
     }
