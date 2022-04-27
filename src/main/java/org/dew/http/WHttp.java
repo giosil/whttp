@@ -4,7 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-
+import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -445,9 +445,10 @@ class WHttp
       method = method.toUpperCase();
     }
     
-    boolean boNoBodyMethod = "GET".equals(method) || "HEAD".equals(method) || "DELETE".equals(method);
+    boolean noBodyMethod = "GET".equals(method) || "HEAD".equals(method) || "DELETE".equals(method);
+    boolean patchMethod  = "PATCH".equals(method);
     
-    if(boNoBodyMethod) {
+    if(noBodyMethod) {
       sURL = getCompleteURL(url, parameters);
     }
     else {
@@ -470,7 +471,30 @@ class WHttp
     
     HttpURLConnection connection = (HttpURLConnection) new URL(sURL).openConnection();
     
-    connection.setRequestMethod(method.toUpperCase());
+    if(patchMethod) {
+      // HttpURLConnection don't support PATCH method
+      try {
+        final Object target;
+        if(connection instanceof HttpsURLConnection) {
+          final Field delegate = connection.getClass().getDeclaredField("delegate");
+          delegate.setAccessible(true);
+          target = delegate.get(connection);
+        } 
+        else {
+          target = connection;
+        }
+        final Field fieldMethod = HttpURLConnection.class.getDeclaredField("method");
+        fieldMethod.setAccessible(true);
+        fieldMethod.set(target, "PATCH");
+      }
+      catch (Exception ex) {
+        connection.setRequestProperty("X-HTTP-Method-Override", "PATCH");
+        connection.setRequestMethod("POST");
+      }
+    }
+    else {
+      connection.setRequestMethod(method);
+    }
     
     if(headers != null && !headers.isEmpty()) {
       Iterator<Map.Entry<String, Object>> iterator = headers.entrySet().iterator();
@@ -492,7 +516,7 @@ class WHttp
       connection.addRequestProperty("Authorization", "Basic " + Base64Coder.encodeString(basicAuthUsername + ":" + basicAuthPassword));
     }
     
-    if(!boNoBodyMethod) {
+    if(!noBodyMethod) {
       if(data != null && data.length() > 0) {
         if(data.startsWith("<")) {
           connection.addRequestProperty("Content-Type", "text/xml");
